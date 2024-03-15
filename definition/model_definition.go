@@ -3,7 +3,9 @@ package definition
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"text/template"
 	"unicode"
@@ -116,7 +118,7 @@ func (m *Model) AutoFillProtoIndex() {
 }
 
 func (m *Model) GenerateDBModel() error {
-	t := template.Must(template.ParseFiles("model.go.tpl"))
+	t := template.Must(template.ParseFiles(getFilePath("model.go.tpl")))
 	outFile, err := os.Create("./internal/models/" + strings.ToLower(m.Name) + ".go")
 	if err != nil {
 		return err
@@ -130,7 +132,7 @@ func (m *Model) GenerateDBModel() error {
 }
 
 func (m *Model) GenerateService() error {
-	t := template.Must(template.ParseFiles("service.go.tpl"))
+	t := template.Must(template.ParseFiles(getFilePath("service.go.tpl")))
 	outFile, err := os.Create("./internal/services/" + strings.ToLower(m.Name) + ".go")
 	if err != nil {
 		return err
@@ -171,7 +173,7 @@ func (m *ModelGenerator) readCustomBlocks() {
 }
 
 func (g *ModelGenerator) GenerateServiceProto() error {
-	t := template.Must(template.ParseFiles("service.proto.tpl"))
+	t := template.Must(template.ParseFiles(getFilePath("service.proto.tpl")))
 	outFile, err := os.Create("./api/iot_collector_service.proto")
 	if err != nil {
 		return err
@@ -181,7 +183,7 @@ func (g *ModelGenerator) GenerateServiceProto() error {
 }
 
 func (g *ModelGenerator) GenerateServer() error {
-	t := template.Must(template.ParseFiles("server.go.tpl"))
+	t := template.Must(template.ParseFiles(getFilePath("server.go.tpl")))
 	outFile, err := os.Create("./internal/server/server_generated.go")
 	if err != nil {
 		return err
@@ -209,4 +211,11 @@ func (g *ModelGenerator) GenerateFiles() error {
 		}
 	}
 	return nil
+}
+
+func getFilePath(name string) string {
+	_, dir, _, _ := runtime.Caller(0)
+	dirName := filepath.Dir(dir)
+	fmt.Println(dirName)
+	return filepath.Join(dirName, name)
 }
