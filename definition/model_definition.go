@@ -216,6 +216,5 @@ func (g *ModelGenerator) GenerateFiles() error {
 func getFilePath(name string) string {
 	_, dir, _, _ := runtime.Caller(0)
 	dirName := filepath.Dir(dir)
-	fmt.Println(dirName)
 	return filepath.Join(dirName, name)
 }
