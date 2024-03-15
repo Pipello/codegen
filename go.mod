@@ -1,4 +1,4 @@
-module codegen
+module github.com/Pipello/codegen
 
 go 1.21
 
