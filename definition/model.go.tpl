@@ -5,6 +5,7 @@ package models
 import (
 	pb "iot-device-register/api"
 
+    "fmt"
 	"gorm.io/gorm"
 )
 {{ range $i, $field := .Fields}}
@@ -27,15 +28,11 @@ func ({{.Name}}) TableName() string {
 	return "{{.Table}}"
 }
 
-func (m *{{.Name}}) IsValid() bool {
-    {{- range .Fields}}
-    {{- if gt (len .Choices) 0 }}
-    if {{ if .Optional }}m.{{ .Name }} != nil && {{ end }}!SliceContains({{ if .Optional }}*{{ end }}m.{{ .Name }}, {{ .LowerCaseName }}Choices) {
-        return false
-    }
-    {{- end }}
-    {{- end }}
-    return true
+func (m *{{.Name}}) Validate(db *gorm.DB) error {
+    // <Model::Block(validation)>
+    {{- .CustomValidation -}}
+    // </Model::Block(validation)>
+    return nil
 }
 
 func (m *{{.Name}}) ToProto() *pb.{{.Name}} {

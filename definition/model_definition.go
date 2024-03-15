@@ -15,6 +15,7 @@ import (
 
 var customMethodsBlock = regexp.MustCompile(`<Service::Block\(additionalMethods\)>(?P<block>(\s\S*)*)\/\/\s*</Service::Block\(additionalMethods\)>`)
 var customMessagesBlock = regexp.MustCompile(`<Service::Block\(additionalMessages\)>(?P<block>(\s\S*)*)\/\/\s*</Service::Block\(additionalMessages\)>`)
+var customValidationBlock = regexp.MustCompile(`<Model::Block\(validation\)>(?P<block>(\s\S*)*)\/\/\s*</Model::Block\(validation\)>`)
 
 type Choice struct {
 	Value any
@@ -85,8 +86,7 @@ type Model struct {
 	Table          string
 	Methods        allowedMethods
 	Fields         []*Field
-	CustomMethods  string
-	CustomMessages string
+	CustomValidation string
 }
 
 func (m *Model) HasGet() bool {
@@ -119,7 +119,9 @@ func (m *Model) AutoFillProtoIndex() {
 
 func (m *Model) GenerateDBModel() error {
 	t := template.Must(template.ParseFiles(getFilePath("model.go.tpl")))
-	outFile, err := os.Create("./internal/models/" + strings.ToLower(m.Name) + ".go")
+	fileName := "./internal/models/" + strings.ToLower(m.Name) + ".go"
+	m.readModelCustomBlock(fileName)
+	outFile, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
@@ -131,9 +133,22 @@ func (m *Model) GenerateDBModel() error {
 	return nil
 }
 
+func (m *Model) readModelCustomBlock(path string) {
+	f, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	fStr := string(f)
+	if customValidationBlock.MatchString(fStr) {
+		matches := customValidationBlock.FindStringSubmatch(fStr)
+		m.CustomValidation = matches[customValidationBlock.SubexpIndex("block")]
+	}
+}
+
 func (m *Model) GenerateService() error {
 	t := template.Must(template.ParseFiles(getFilePath("service.go.tpl")))
-	outFile, err := os.Create("./internal/services/" + strings.ToLower(m.Name) + ".go")
+	fileName := "./internal/services/" + strings.ToLower(m.Name) + ".go"
+	outFile, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
