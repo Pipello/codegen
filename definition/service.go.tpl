@@ -82,7 +82,7 @@ func (s *{{$modelName}}Service) Create(ctx context.Context, req *pb.Create{{$mod
         {{if not $field.Relationship}}{{$field.Name}}: req.{{$modelName}}.{{$field.GoCamelCaseName}},{{end}}
         {{- end }}
 	}
-	if err := item.Validate(db); err != nil {
+	if err := item.Validate(s.db); err != nil {
 		return nil, status.Error(codes.InvalidArgument,
 		 fmt.Sprintf("{{$modelName}} is not valid, %v", err))
 	}
@@ -114,7 +114,7 @@ func (s *{{$modelName}}Service) Update(ctx context.Context, req *pb.Update{{$mod
 		{{- end }}
 		}
 	}
-	if err := item.Validate(db); err != nil {
+	if err := item.Validate(s.db); err != nil {
 		return nil, status.Error(codes.InvalidArgument, 
 		fmt.Sprintf("{{$modelName}} is not valid, %v", err))
 	}
