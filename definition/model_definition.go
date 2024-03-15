@@ -116,7 +116,7 @@ func (m *Model) AutoFillProtoIndex() {
 }
 
 func (m *Model) GenerateDBModel() error {
-	t := template.Must(template.ParseFiles("./pkg/definition/model.go.tpl"))
+	t := template.Must(template.ParseFiles("model.go.tpl"))
 	outFile, err := os.Create("./internal/models/" + strings.ToLower(m.Name) + ".go")
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func (m *Model) GenerateDBModel() error {
 }
 
 func (m *Model) GenerateService() error {
-	t := template.Must(template.ParseFiles("./pkg/definition/service.go.tpl"))
+	t := template.Must(template.ParseFiles("service.go.tpl"))
 	outFile, err := os.Create("./internal/services/" + strings.ToLower(m.Name) + ".go")
 	if err != nil {
 		return err
@@ -171,7 +171,7 @@ func (m *ModelGenerator) readCustomBlocks() {
 }
 
 func (g *ModelGenerator) GenerateServiceProto() error {
-	t := template.Must(template.ParseFiles("./pkg/definition/service.proto.tpl"))
+	t := template.Must(template.ParseFiles("service.proto.tpl"))
 	outFile, err := os.Create("./api/iot_collector_service.proto")
 	if err != nil {
 		return err
@@ -181,7 +181,7 @@ func (g *ModelGenerator) GenerateServiceProto() error {
 }
 
 func (g *ModelGenerator) GenerateServer() error {
-	t := template.Must(template.ParseFiles("./pkg/definition/server.go.tpl"))
+	t := template.Must(template.ParseFiles("server.go.tpl"))
 	outFile, err := os.Create("./internal/server/server_generated.go")
 	if err != nil {
 		return err
