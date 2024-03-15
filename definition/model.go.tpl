@@ -5,7 +5,6 @@ package models
 import (
 	pb "iot-device-register/api"
 
-    "fmt"
 	"gorm.io/gorm"
 )
 {{ range $i, $field := .Fields}}
