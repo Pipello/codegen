@@ -4,7 +4,9 @@ syntax = "proto3";
 
 package main;
 
-option go_package = "github.com/pipello/iot-device-register/api";
+option go_package = "{{.Config.RepositoryName}}/api";
+
+import "google/protobuf/timestamp.proto";
 
 message Filter {
   string field = 1;
@@ -20,14 +22,14 @@ message OrderBy {
   string field = 1;
   OrderByDirection direction = 2;
 }
-{{ range .Models }}
+{{ range .Schemas }}
 //TODO: Implement enums for choice types
 message {{.Name}} {
   uint64 id = 1;
-  string created_at = 2;
-  string updated_at = 3;
+  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp updated_at = 3;
 {{- range $index, $field := .Fields}} 
-  {{if $field.Optional}}optional {{end}}{{if $field.Repeated}}repeated {{end}}{{$field.Type}} {{$field.ToSnakeCase}} = {{$field.ProtoIndex}}; 
+  {{if $field.Optional}}optional {{end}}{{if $field.Repeated}}repeated {{end}}{{$field.GetProtoType}} {{$field.ToSnakeCase}} = {{$field.ProtoIndex}}; 
 {{- end }}
 }
 
@@ -86,15 +88,15 @@ message Delete{{.Name}}Request {
 }
 
 message Delete{{.Name}}Response {}
-{{- end }}
+{{ end }}
 
-{{- end -}}
+{{- end }}
 // <Service::Block(additionalMessages)>
 {{- .CustomMessages -}}
 // </Service::Block(additionalMessages)>
 
-service IotCollectorService {
-{{- range .Models}}
+service {{.Config.GRPCServiceName}} {
+{{- range .Schemas}}
   {{ if .HasGet -}}
   rpc Get{{.Name}}(Get{{.Name}}Request) returns (Get{{.Name}}Response) {}
   {{- end }}
@@ -109,7 +111,7 @@ service IotCollectorService {
   {{- end }}
   {{ if .HasDelete -}}
   rpc Delete{{.Name}}(Delete{{.Name}}Request) returns (Delete{{.Name}}Response) {}
-  {{- end }}
+  {{ end }}
 {{- end }}
   // <Service::Block(additionalMethods)>
   {{- .CustomMethods -}}

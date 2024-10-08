@@ -3,15 +3,18 @@
 package models
 
 import (
-	pb "iot-device-register/api"
+    "database/sql"
+    "gorm.io/gorm"
+    "google.golang.org/protobuf/types/known/timestamppb"
 
-	"gorm.io/gorm"
+	pb "{{.RepositoryName}}/api"
+    "github.com/Pipello/codegen/definition"
 )
 {{ range $i, $field := .Fields}}
 {{- if gt (len $field.Choices) 0 }}
-var {{ $field.LowerCaseName }}Choices = []{{$field.Type}}{{"{"}}
+var {{ $field.LowerCaseName }}Choices = []{{$field.GetGORMType}}{{"{"}}
     {{- range $j, $choice := .Choices }}
-    {{ $choice.GetValue $field.Type }},
+    {{ $choice.GetValue $field.GetGORMType }},
     {{- end }}
 {{"}"}}
 {{ end }}
@@ -19,7 +22,7 @@ var {{ $field.LowerCaseName }}Choices = []{{$field.Type}}{{"{"}}
 type {{.Name}} struct {
     gorm.Model
     {{- range .Fields}}
-    {{.Name}} {{if .Repeated}}[]{{end}}{{if .Optional}}*{{end}}{{.Type}} `json:"{{.ToSnakeCase}}"{{if .GormTag}} gorm:"{{.GormTag}}"{{end}}`
+    {{.Name}} {{if .Repeated}}[]{{end}}{{if .Optional}}*{{end}}{{.GetGORMType}} `json:"{{.ToSnakeCase}}"{{if .GormTag}} gorm:"{{.GormTag}}"{{end}}`
     {{- end}}
 }
 
@@ -40,7 +43,7 @@ func (m *{{.Name}}) ToProto() *pb.{{.Name}} {
     }
     {{- range .Fields -}} 
     {{- if and .Relationship .Repeated }}
-    {{ .LowerCaseName }} := []*pb.{{.Type}}{}
+    {{ .LowerCaseName }} := []*pb.{{.GetGORMType}}{}
     for _, item := range m.{{ .Name }} {
         {{ .LowerCaseName }} = append({{ .LowerCaseName }}, item.ToProto())
     }
@@ -48,13 +51,10 @@ func (m *{{.Name}}) ToProto() *pb.{{.Name}} {
     {{- end }}
     return &pb.{{.Name}}{
         Id:          uint64(m.ID),
-        CreatedAt: m.CreatedAt.String(),
-        UpdatedAt: m.UpdatedAt.String(),
-        {{- range .Fields }} 
-        {{ if not .Relationship -}}{{ .GoCamelCaseName }}: m.{{ .Name }},
-        {{- else if not .Repeated -}}{{ .GoCamelCaseName }}: m.{{ .Name }}.ToProto(),
-        {{- else }}{{ .GoCamelCaseName }}: {{ .LowerCaseName }},
-        {{- end -}}
+        CreatedAt: timestamppb.New(m.CreatedAt),
+        UpdatedAt: timestamppb.New(m.UpdatedAt),
+        {{- range .Fields }}
+        {{ .GoCamelCaseName }}: {{ .ValueToProto }},
         {{- end }}
     }
 }

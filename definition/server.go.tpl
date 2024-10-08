@@ -4,11 +4,11 @@ package server
 
 import (
 	"context"
-	pb "iot-device-register/api"
+	pb "{{.Config.RepositoryName}}/api"
 )
 
 
-{{ range .Models }}
+{{ range .Schemas }}
 // {{.Name}} methods
 
 {{ if .HasGet -}}

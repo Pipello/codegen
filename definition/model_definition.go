@@ -28,9 +28,19 @@ func (c Choice) GetValue(t string) string {
 	return fmt.Sprint(c.Value)
 }
 
+type FieldType int
+
+const (
+	IntegerType FieldType = iota
+	UnsignedIntegerType
+	StringType
+	Timestamp
+	Relationship
+)
+
 type Field struct {
 	Name         string
-	Type         string
+	Type         FieldType
 	Optional     bool
 	Repeated     bool
 	Relationship bool
@@ -39,14 +49,57 @@ type Field struct {
 	Choices      []Choice
 }
 
-func (f *Field) GetZeroValue() string {
-	if f.Type == "string" {
+func (f *Field) GetProtoType() string {
+	switch f.Type {
+	case IntegerType:
+		return "int64"
+	case UnsignedIntegerType:
+		return "uint64"
+	case StringType:
+		return "string"
+	case Timestamp:
+		return "google.protobuf.Timestamp"
+	}
+	return ""
+}
+
+func (f *Field) GetGORMType() string {
+	switch f.Type {
+	case IntegerType:
+		return "int64"
+	case UnsignedIntegerType:
+		return "uint64"
+	case StringType:
+		return "string"
+	case Timestamp:
+		return "sql.NullTime"
+	}
+	return ""
+}
+
+func (f *Field) ValueToProto() string {
+	if f.Type == Timestamp {
+		return "definition.SQLTimeToProto(m." + f.Name + ")"
+	}
+
+	if f.Relationship {
+		if f.Repeated {
+			return f.LowerCaseName()
+		}
+		return "m." + f.Name + ".ToProto()"
+	}
+	return "m." + f.Name
+}
+
+func (f *Field) ValueToSQL(model string) string {
+	if f.Relationship {
 		return ""
 	}
-	if f.Type == "uint64" {
-		return "0"
+	accessor := strings.Join([]string{"req", model, f.GoCamelCaseName()}, ".")
+	if f.Type == Timestamp {
+		return "definition.ProtoTimeToSql(" + accessor + ")"
 	}
-	return "nil"
+	return accessor
 }
 
 func (f *Field) GoCamelCaseName() string {
@@ -81,35 +134,36 @@ const (
 	Delete
 )
 
-type Model struct {
-	Name           string
-	Table          string
-	Methods        allowedMethods
-	Fields         []*Field
+type Schema struct {
+	Name             string
+	Table            string
+	Methods          allowedMethods
+	Fields           []*Field
 	CustomValidation string
+	RepositoryName   string
 }
 
-func (m *Model) HasGet() bool {
+func (m *Schema) HasGet() bool {
 	return m.Methods&Get > 0
 }
 
-func (m *Model) HasList() bool {
+func (m *Schema) HasList() bool {
 	return m.Methods&List > 0
 }
 
-func (m *Model) HasCreate() bool {
+func (m *Schema) HasCreate() bool {
 	return m.Methods&Create > 0
 }
 
-func (m *Model) HasUpdate() bool {
+func (m *Schema) HasUpdate() bool {
 	return m.Methods&Update > 0
 }
 
-func (m *Model) HasDelete() bool {
+func (m *Schema) HasDelete() bool {
 	return m.Methods&Delete > 0
 }
 
-func (m *Model) AutoFillProtoIndex() {
+func (m *Schema) AutoFillProtoIndex() {
 	for i, f := range m.Fields {
 		if f.ProtoIndex == 0 {
 			f.ProtoIndex = i + 4
@@ -117,7 +171,7 @@ func (m *Model) AutoFillProtoIndex() {
 	}
 }
 
-func (m *Model) GenerateDBModel() error {
+func (m *Schema) GenerateDBModel() error {
 	t := template.Must(template.ParseFiles(getFilePath("model.go.tpl")))
 	fileName := "./internal/models/" + strings.ToLower(m.Name) + ".go"
 	m.readModelCustomBlock(fileName)
@@ -133,7 +187,7 @@ func (m *Model) GenerateDBModel() error {
 	return nil
 }
 
-func (m *Model) readModelCustomBlock(path string) {
+func (m *Schema) readModelCustomBlock(path string) {
 	f, err := os.ReadFile(path)
 	if err != nil {
 		return
@@ -145,7 +199,7 @@ func (m *Model) readModelCustomBlock(path string) {
 	}
 }
 
-func (m *Model) GenerateService() error {
+func (m *Schema) GenerateService() error {
 	t := template.Must(template.ParseFiles(getFilePath("service.go.tpl")))
 	fileName := "./internal/services/" + strings.ToLower(m.Name) + ".go"
 	outFile, err := os.Create(fileName)
@@ -156,23 +210,30 @@ func (m *Model) GenerateService() error {
 	return t.Execute(outFile, m)
 }
 
-func (m *Model) LowercaseName() string {
+func (m *Schema) LowercaseName() string {
 	return strings.ToLower(m.Name)
 }
 
-func (m *Model) SnakeCaseName() string {
+func (m *Schema) SnakeCaseName() string {
 	return strcase.ToSnake(m.Name)
 }
 
-type ModelGenerator struct {
-	Models         []*Model
+type CompleteGenerator struct {
+	Schemas        []*Schema
+	Config         Config
 	CustomMethods  string
 	CustomMessages string
 }
 
-func (m *ModelGenerator) readCustomBlocks() {
-	path := "./api/iot_collector_service.proto"
-	f, err := os.ReadFile(path)
+func (m *CompleteGenerator) getProtoServiceFilePath() string {
+	if m.Config.ProtoBufFileName != "" {
+		return "./api/" + m.Config.ProtoBufFileName
+	}
+	return fmt.Sprintf("./api/%s.proto", strcase.ToSnake(m.Config.GRPCServiceName))
+}
+
+func (m *CompleteGenerator) readCustomBlocks() {
+	f, err := os.ReadFile(m.getProtoServiceFilePath())
 	if err != nil {
 		return
 	}
@@ -187,9 +248,9 @@ func (m *ModelGenerator) readCustomBlocks() {
 	}
 }
 
-func (g *ModelGenerator) GenerateServiceProto() error {
+func (g *CompleteGenerator) GenerateServiceProto() error {
 	t := template.Must(template.ParseFiles(getFilePath("service.proto.tpl")))
-	outFile, err := os.Create("./api/iot_collector_service.proto")
+	outFile, err := os.Create(g.getProtoServiceFilePath())
 	if err != nil {
 		return err
 	}
@@ -197,7 +258,7 @@ func (g *ModelGenerator) GenerateServiceProto() error {
 	return t.Execute(outFile, g)
 }
 
-func (g *ModelGenerator) GenerateServer() error {
+func (g *CompleteGenerator) GenerateServer() error {
 	t := template.Must(template.ParseFiles(getFilePath("server.go.tpl")))
 	outFile, err := os.Create("./internal/server/server_generated.go")
 	if err != nil {
@@ -207,7 +268,7 @@ func (g *ModelGenerator) GenerateServer() error {
 	return t.Execute(outFile, g)
 }
 
-func (g *ModelGenerator) GenerateFiles() error {
+func (g *CompleteGenerator) GenerateFiles() error {
 	g.readCustomBlocks()
 	if err := g.GenerateServiceProto(); err != nil {
 		return err
@@ -215,7 +276,8 @@ func (g *ModelGenerator) GenerateFiles() error {
 	if err := g.GenerateServer(); err != nil {
 		return err
 	}
-	for _, m := range g.Models {
+	for _, m := range g.Schemas {
+		m.RepositoryName = g.Config.RepositoryName
 		err := m.GenerateDBModel()
 		if err != nil {
 			return err
@@ -228,8 +290,29 @@ func (g *ModelGenerator) GenerateFiles() error {
 	return nil
 }
 
+func (g *CompleteGenerator) Generate() error {
+	return g.GenerateFiles()
+}
+
 func getFilePath(name string) string {
 	_, dir, _, _ := runtime.Caller(0)
 	dirName := filepath.Dir(dir)
 	return filepath.Join(dirName, name)
+}
+
+type Config struct {
+	ProtoBufFileName string
+	GRPCServiceName  string
+	RepositoryName   string
+}
+
+type Generator interface {
+	Generate() error
+}
+
+func NewGenerator(schemas []*Schema, config Config) Generator {
+	return &CompleteGenerator{
+		Schemas: schemas,
+		Config:  config,
+	}
 }

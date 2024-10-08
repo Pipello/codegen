@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"context"
 	"errors"
-	pb "iot-device-register/api"
-	"iot-device-register/internal/models"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
+
+	pb "{{.RepositoryName}}/api"
+	"{{.RepositoryName}}/internal/models"
+	"github.com/Pipello/codegen/definition"
 )
 {{ $modelName := .Name }}
 type {{$modelName}}Service struct {
@@ -79,7 +80,7 @@ func (s *{{$modelName}}Service) List(ctx context.Context, req *pb.List{{$modelNa
 func (s *{{$modelName}}Service) Create(ctx context.Context, req *pb.Create{{$modelName}}Request) (*models.{{$modelName}}, error) {
 	item := models.{{$modelName}}{
         {{- range $index, $field := .Fields}} 
-        {{if not $field.Relationship}}{{$field.Name}}: req.{{$modelName}}.{{$field.GoCamelCaseName}},{{end}}
+        {{if not $field.Relationship}}{{$field.Name}}: {{ $field.ValueToSQL $modelName }},{{end}}
         {{- end }}
 	}
 	if err := item.Validate(s.db); err != nil {
@@ -109,7 +110,7 @@ func (s *{{$modelName}}Service) Update(ctx context.Context, req *pb.Update{{$mod
 		{{- range $index, $field := .Fields }}
 		{{- if not $field.Relationship }}
 		case "{{ $field.ToSnakeCase }}":
-			item.{{ $field.Name }} = req.{{$modelName}}.{{ $field.GoCamelCaseName }}
+			item.{{ $field.Name }} = {{ $field.ValueToSQL $modelName }}
 		{{- end }}
 		{{- end }}
 		}
