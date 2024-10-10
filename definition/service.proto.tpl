@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package main;
+package {{.Config.ServiceName}};
 
 option go_package = "{{.Config.RepositoryName}}/api";
 

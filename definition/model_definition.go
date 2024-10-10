@@ -226,10 +226,7 @@ type CompleteGenerator struct {
 }
 
 func (m *CompleteGenerator) getProtoServiceFilePath() string {
-	if m.Config.ProtoBufFileName != "" {
-		return "./api/" + m.Config.ProtoBufFileName
-	}
-	return fmt.Sprintf("./api/%s.proto", strcase.ToSnake(m.Config.GRPCServiceName))
+	return fmt.Sprintf("./api/%s.proto", strcase.ToSnake(m.Config.ServiceName))
 }
 
 func (m *CompleteGenerator) readCustomBlocks() {
@@ -301,9 +298,9 @@ func getFilePath(name string) string {
 }
 
 type Config struct {
-	ProtoBufFileName string
-	GRPCServiceName  string
-	RepositoryName   string
+	ServiceName     string
+	GRPCServiceName string
+	RepositoryName  string
 }
 
 type Generator interface {
