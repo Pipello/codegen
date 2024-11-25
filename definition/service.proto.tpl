@@ -8,9 +8,16 @@ option go_package = "{{.Config.RepositoryName}}/api";
 
 import "google/protobuf/timestamp.proto";
 
+enum FilterOperator {
+  IN = 0;
+  EQ = 1;
+  LIKE = 2;
+}
+
 message Filter {
   string field = 1;
-  string value = 2;
+  repeated string values = 2;
+  FilterOperator operator = 3;
 }
 
 enum OrderByDirection {

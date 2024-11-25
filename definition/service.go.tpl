@@ -57,7 +57,14 @@ func (s *{{$modelName}}Service) List(ctx context.Context, req *pb.List{{$modelNa
 	}
 	//TODO: make filter and sort SQL injection safe
 	for _, filter := range req.Filters {
-		query = query.Where(filter.Field + " = ?", filter.Value)
+		switch filter.Operator{
+		case pb.FilterOperator_EQ:
+			query = query.Where(filter.Field+" = ?", filter.Values[0])
+		case pb.FilterOperator_LIKE:
+			query.Where(filter.Field+" LIKE ?", filter.Values[0])
+		case pb.FilterOperator_IN:
+			query.Where(filter.Field+" IN ?", filter.Values)
+		}
 	}
 	if req.OrderBy != nil {
 		direction := pb.OrderByDirection_name[int32(req.OrderBy.Direction)]
