@@ -12,6 +12,7 @@ enum FilterOperator {
   IN = 0;
   EQ = 1;
   LIKE = 2;
+  IS_NULL = 3;
 }
 
 message Filter {

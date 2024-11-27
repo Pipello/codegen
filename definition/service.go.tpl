@@ -64,6 +64,8 @@ func (s *{{$modelName}}Service) List(ctx context.Context, req *pb.List{{$modelNa
 			query.Where(filter.Field+" LIKE ?", filter.Values[0])
 		case pb.FilterOperator_IN:
 			query.Where(filter.Field+" IN ?", filter.Values)
+		case pb.FilterOperator_IS_NULL:
+			query.Where(filter.Field+" IS NULL")
 		}
 	}
 	if req.OrderBy != nil {

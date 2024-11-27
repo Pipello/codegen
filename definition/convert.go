@@ -16,7 +16,7 @@ func ProtoTimeToSql(protoTime *timestamppb.Timestamp) sql.NullTime {
 
 func SQLTimeToProto(sqlTime sql.NullTime) *timestamppb.Timestamp {
 	if sqlTime.Valid {
-		timestamppb.New(sqlTime.Time)
+		return timestamppb.New(sqlTime.Time)
 	}
 	return nil
 }
