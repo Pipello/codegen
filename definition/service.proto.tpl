@@ -19,6 +19,7 @@ message Filter {
   string field = 1;
   repeated string values = 2;
   FilterOperator operator = 3;
+  bool negation = 4;
 }
 
 enum OrderByDirection {

@@ -35,6 +35,7 @@ const (
 	UnsignedIntegerType
 	StringType
 	Timestamp
+	Boolean
 	Relationship
 )
 
@@ -59,6 +60,8 @@ func (f *Field) GetProtoType() string {
 		return "string"
 	case Timestamp:
 		return "google.protobuf.Timestamp"
+	case Boolean:
+		return "bool"
 	}
 	return ""
 }
@@ -73,6 +76,8 @@ func (f *Field) GetGORMType() string {
 		return "string"
 	case Timestamp:
 		return "sql.NullTime"
+	case Boolean:
+		return "bool"
 	}
 	return ""
 }
