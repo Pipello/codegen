@@ -37,6 +37,7 @@ const (
 	Timestamp
 	Boolean
 	Relationship
+	FloatType
 )
 
 type Field struct {
@@ -62,6 +63,8 @@ func (f *Field) GetProtoType() string {
 		return "google.protobuf.Timestamp"
 	case Boolean:
 		return "bool"
+	case FloatType:
+		return "float"
 	}
 	return ""
 }
@@ -78,6 +81,8 @@ func (f *Field) GetGORMType() string {
 		return "sql.NullTime"
 	case Boolean:
 		return "bool"
+	case FloatType:
+		return "float32"
 	}
 	return ""
 }
